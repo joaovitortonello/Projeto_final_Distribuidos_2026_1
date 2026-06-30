@@ -34,7 +34,7 @@ conectado = threading.Event()
 
 
 class Produto:
-    def _init_(self, nome, valor):
+    def __init__(self, nome, valor):
         self.nome = nome
         self.valor = valor
 
@@ -123,6 +123,7 @@ def menu():
         print("[1] fazer um pedido\n")
         print("[2] depositar creditos\n")
         print("[3] historico de pedidos\n")
+        print("[4] processamento lento\n")
         print("[0] sair\n")
 
         op = input()
@@ -135,7 +136,8 @@ def menu():
 
             case "3":
                 historico()
-
+            case "4":
+                menu_processamento_lento()
             case "0":
                 sock.sendall(b"CLOSECONNECTION")
                 conectado.clear()
@@ -205,6 +207,37 @@ def menu_admin():
     # o usuario logado tem permissao "administrador".
     pass
 
+def menu_processamento_lento():
+    print("\n=== PROCESSAMENTO LENTO ===")
+    print("1. Simular Rota de Entrega (Permissão: Usuário Comum)")
+    print("2. Rodar Auditoria de Vendas (Permissão: Administrador - Multiprocessing)")
+    print("3. Voltar")
+    
+    opcao = input("Escolha uma opção de cálculo: ").strip()
+    
+    if opcao == "1":
+        pedidos = input("Digite a quantidade de pedidos para simular (ex: 5): ").strip()
+        # Envia no formato esperado pelo nosso gancho no servidor
+        sock.sendall(f"CALCULO:SIMULAR_ENTREGA|{pedidos}".encode("utf-8"))
+        print("Solicitação enviada. Aguardando resposta do servidor...")
+        
+    elif opcao == "2":
+        registros = input("Digite o número de registros para a auditoria pesada (ex: 10000000): ").strip()
+        # para o mock do servidor entender que somos admin."
+        como_admin = input("Deseja simular como Administrador? (S/N): ").strip().upper()
+        
+        if como_admin == "S":
+            sock.sendall(f"admin CALCULO:AUDITORIA_VENDAS|{registros}".encode("utf-8"))
+        else:
+            sock.sendall(f"CALCULO:AUDITORIA_VENDAS|{registros}".encode("utf-8"))
+            
+        print("Solicitação pesada enviada! Graças ao Multiprocessing, o servidor não vai travar.")
+        
+    elif opcao == "3":
+        return
+    else:
+        print("Opção inválida.")
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     main()

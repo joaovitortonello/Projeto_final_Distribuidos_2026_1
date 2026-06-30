@@ -1,6 +1,7 @@
 import socket
 import sys
 import threading
+from processamento_lento.processamento_lento import despachar_processamento, PermissaoNegadaError
 
 # =========================================================================
 # SETOR: THREADS
@@ -181,6 +182,34 @@ def processar_requisicao(texto: str, conn: socket.socket, endereco) -> str:
 
     # TODO(LOGS): registrar aqui (ou via modulo de logging dedicado) quem
     # pediu o que, quando, e qual foi o resultado/erro.
+
+    perfil_mockado = "usuario" #Temporário enquanto o grupo de autenticação não estiver pronto
+    if "admin" in texto.lower():
+        perfil_mockado = "administrador"
+
+    # -------------------------------------------------------------------------
+    # PARSE SIMPLES DE COMANDOS DO SEU SETOR
+    # Exemplo de comandos: "CALCULO:SIMULAR_ENTREGA|5" ou "CALCULO:AUDITORIA_VENDAS|20000000"
+    # -------------------------------------------------------------------------
+    if texto.upper().startswith("CALCULO:"):
+        try:
+            # Divide o comando e os parâmetros
+            partes = texto.split(":", 1)[1].split("|")
+            operacao = partes[0]
+            parametro = int(partes[1]) if len(partes) > 1 else None
+            
+            # Chama o seu despachador isolado
+            # Roda dentro da thread deste cliente específico, mas se for AUDITORIA_VENDAS,
+            # usará multiprocessamento internamente sem engasgar o núcleo do servidor.
+            if parametro:
+                resposta_calculo = despachar_processamento(perfil_mockado, operacao, parametro)
+            else:
+                resposta_calculo = despachar_processamento(perfil_mockado, operacao)
+                
+            return resposta_calculo
+
+        except PermissaoNegadaError as p_exc:
+            return f"ERRO_AUTORIZACAO: {str(p_exc)}\n"
 
     if texto.upper() == "LISTADEITENS":
         # Exemplo simples de resposta a partir do catalogo da BASE.
